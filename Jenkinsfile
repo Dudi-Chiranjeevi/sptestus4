@@ -56,13 +56,13 @@ pipeline {
 
                         parallelSteps["Transfer to ${cleanHost}"] = {
 
-                            sh """
+                            pwsh """
 
                                 mkdir -p logs
 
                                 echo "===== Transfer Start to ${cleanHost} =====" >> logs/transfer_${cleanHost}.log
 
-                                pwsh -File ./migrate.ps1 `
+                                ./migrate.ps1 `
 
                                       -SourceUser "${params.SOURCE_USER}" `
 
