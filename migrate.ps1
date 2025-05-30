@@ -1,32 +1,74 @@
 param (
+
     [string]$SourceUser,
+
     [string]$SourceHost,
+
     [string]$DestinationUser,
+
     [string]$DestinationHosts,
+
     [string]$CsvFilePath,
+
     [string]$TargetPath
+
 )
  
+$ErrorActionPreference = "Stop"
+
 $hosts = $DestinationHosts -split ','
  
 foreach ($hostIp in $hosts) {
-    $destination = "$DestinationUser@${hostIp}:${TargetPath}"
-    Write-Host "Executing SCP from $SourceHost to $destination"
- 
-    $scpCommand = "scp -o StrictHostKeyChecking=no $CsvFilePath $destination"
-    $escapedScpCommand = $scpCommand.Replace('"', '\"')
- 
-    $sshCommand = "ssh -o StrictHostKeyChecking=no ${SourceUser}@${SourceHost} `"$escapedScpCommand`""
+
     try {
+
+        Write-Host "➡️  Starting transfer from $SourceHost to $hostIp..."
+
+        $scpCommand = "scp -o StrictHostKeyChecking=no $CsvFilePath ${DestinationUser}@${hostIp}:$TargetPath"
+
+        $sshCommand = "ssh -o StrictHostKeyChecking=no ${SourceUser}@${SourceHost} `"$scpCommand`""
+ 
+        Write-Host "Executing: $sshCommand"
+
         Invoke-Expression $sshCommand
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "❌ Transfer to $hostIp failed."
-            exit 1
-        } else {
-            Write-Host "✅ Transfer to $hostIp successful."
-        }
+ 
+        Write-Host "✅ Transfer to $hostIp completed."
+
     } catch {
-        Write-Host "❌ Exception occurred while transferring to $hostIp: $_"
-        exit 1
+
+        Write-Host "❌ Exception occurred while transferring to ${hostIp}: $_"
+
     }
+
 }
+
+ 
+destinationIps.each { target ->
+
+    parallelSteps["Transfer to ${target}"] = {
+
+        sh """
+
+            echo ===== Transfer Start to ${target} =====
+
+            pwsh -File ./migrate.ps1 `
+
+                -SourceUser '${SOURCE_USER}' `
+
+                -SourceHost '${SOURCE_HOST}' `
+
+                -DestinationUser '${DESTINATION_USER}' `
+
+                -DestinationHosts '${target}' `
+
+                -CsvFilePath '${CSV_FILE_PATH}' `
+
+                -TargetPath '${TARGET_PATH}'
+
+        """
+
+    }
+
+}
+
+ 
