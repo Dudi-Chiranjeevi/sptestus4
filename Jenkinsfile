@@ -12,12 +12,10 @@ pipeline {
 
         SOURCE_HOST = '10.128.0.29'
  
-        DEST_USERS  = 'cdudi'  // Same user for all destination VMs
-
-        DEST_HOSTS  = '10.128.0.28,10.128.0.24' // Comma-separated list
+        DEST_USER   = 'cdudi'  // Same user for all destination VMs
 
         DEST_PATH   = '/home/cdudi/'
- 
+
         FILE_NAME   = '/home/cdudi/sfile.csv'
 
     }
@@ -36,43 +34,57 @@ pipeline {
  
         stage('Transfer CSV File to Multiple Destination VMs') {
 
-            steps {
+            parallel {
 
-                script {
+                stage('Transfer to 10.128.0.28') {
 
-                    def hosts = DEST_HOSTS.split(',').collect { it.trim() }
+                    steps {
 
-                    def parallelTasks = [:]
- 
-                    for (host in hosts) {
+                        pwsh """
 
-                        def targetHost = host // Groovy closure scope fix
+                            ./migrate.ps1 `
 
-                        parallelTasks["Transfer to ${targetHost}"] = {
+                                        -SourceUser '${SOURCE_USER}' `
 
-                            pwsh """
+                                        -SourceHost '${SOURCE_HOST}' `
 
-                                ./migrate.ps1 `
+                                        -DestinationUser '${DEST_USER}' `
 
-                                            -SourceUser '${SOURCE_USER}' `
+                                        -DestinationHost '10.128.0.28' `
 
-                                            -SourceHost '${SOURCE_HOST}' `
+                                        -CsvFilePath '${FILE_NAME}' `
 
-                                            -DestinationUser '${DEST_USERS}' `
+                                        -TargetPath '${DEST_PATH}'
 
-                                            -DestinationHost '${targetHost}' `
-
-                                            -CsvFilePath '${FILE_NAME}' `
-
-                                            -TargetPath '${DEST_PATH}'
-
-                            """
-
-                        }
+                        """
 
                     }
+
+                }
  
-                    parallel parallelTasks
+                stage('Transfer to 10.128.0.24') {
+
+                    steps {
+
+                        pwsh """
+
+                            ./migrate.ps1 `
+
+                                        -SourceUser '${SOURCE_USER}' `
+
+                                        -SourceHost '${SOURCE_HOST}' `
+
+                                        -DestinationUser '${DEST_USER}' `
+
+                                        -DestinationHost '10.128.0.24' `
+
+                                        -CsvFilePath '${FILE_NAME}' `
+
+                                        -TargetPath '${DEST_PATH}'
+
+                        """
+
+                    }
 
                 }
 
@@ -84,6 +96,7 @@ pipeline {
 
 }
 
+ 
  
 
 // worked code for single vm
