@@ -66,14 +66,14 @@ pipeline {
 
         stage('Transfer CSV File from Source VM to Destination VM') {
             steps {
-                sh """
-                    pwsh -File ./migrate.ps1 `
-                        -SourceUser '${SOURCE_USER}' `
-                        -SourceHost '${SOURCE_HOST}' `
-                        -DestinationUser '${DEST_USER}' `
-                        -DestinationHost '${DEST_HOST}' `
-                        -CsvFilePath '${FILE_NAME}' `
-                        -TargetPath '${DEST_PATH}'
+                pwsh """
+                    ./migrate.ps1 `
+                                -SourceUser '${SOURCE_USER}' `
+                                -SourceHost '${SOURCE_HOST}' `
+                                -DestinationUser '${DEST_USER}' `
+                                -DestinationHost '${DEST_HOST}' `
+                                -CsvFilePath '${FILE_NAME}' `
+                                -TargetPath '${DEST_PATH}'
                 """
             }
         }
