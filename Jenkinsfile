@@ -2,17 +2,17 @@ pipeline {
     agent any
 
     environment {
-        GIT_REPO    = 'https://github.com/SudhakarJinuka/test_case4.git'
+        GIT_REPO    = 'https://github.com/Dudi-Chiranjeevi/sptestus4.git'
         BRANCH      = 'main'
 
-        SOURCE_USER = 'sjinuka'
+        SOURCE_USER = 'cdudi'
         SOURCE_HOST = '10.128.0.29'
 
-        DEST_USER   = 'sjinuka'
+        DEST_USER   = 'cdudi'
         DEST_HOST   = '10.128.0.28'
-        DEST_PATH   = '/home/sjinuka/'
+        DEST_PATH   = '/home/cdudi/'
 
-        FILE_NAME   = '/home/sjinuka/sample_data3.csv'
+        FILE_NAME   = '/home/cdudi/sfile.csv'
     }
 
     stages {
@@ -26,7 +26,7 @@ pipeline {
             steps {
                 sh '''
                 pwsh -Command "& {
-                    ./migrate_copy.ps1 `
+                    ./migrate.ps1 `
                         -SourceUser \\"${SOURCE_USER}\\" `
                         -SourceHost \\"${SOURCE_HOST}\\" `
                         -DestinationUser \\"${DEST_USER}\\" `
