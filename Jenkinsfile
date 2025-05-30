@@ -2,107 +2,129 @@ pipeline {
 
     agent any
  
+    parameters {
+
+        string(name: 'SOURCE_USER', defaultValue: 'cdudi', description: 'Username of source VM')
+
+        string(name: 'SOURCE_HOST', defaultValue: '10.128.0.29', description: 'Source VM IP')
+ 
+        choice(name: 'DEST_HOST', choices: ['ALL', '10.128.0.24', '10.128.0.28'], description: 'Single target or ALL')
+
+        string(name: 'DEST_USER', defaultValue: 'cdudi', description: 'Username on target VMs')
+
+        string(name: 'DEST_PATH', defaultValue: '/home/cdudi/', description: 'Target path')
+
+        string(name: 'FILE_NAME', defaultValue: '/home/cdudi/sfile.csv', description: 'File path on source VM')
+
+    }
+ 
     environment {
 
-        GIT_REPO    = 'https://github.com/Dudi-Chiranjeevi/sptestus4.git' 
-
-        BRANCH      = 'main'
- 
-        SOURCE_USER = 'cdudi'
-
-        SOURCE_HOST = '10.128.0.29'
- 
-        DEST_USER_1   = 'cdudi'
-
-        DEST_HOST_1   = '10.128.0.28'
-
-        DEST_PATH_1   = '/home/cdudi/'
- 
-        DEST_USER_2   = 'cdudi'
-
-        DEST_HOST_2   = '10.128.0.24'   // example second target VM IP
-
-        DEST_PATH_2   = '/home/cdudi/'
- 
-        FILE_NAME   = '/home/cdudi/sfile.csv'
+        ALL_HOSTS = '10.128.0.24,10.128.0.28'
 
     }
  
     stages {
 
-        stage('Clone GitHub Repo') {
+        stage('Checkout GitHub Repo') {
 
             steps {
 
-                git branch: "${BRANCH}", url: "${GIT_REPO}"
+                git branch: 'main', url: 'https://github.com/Dudi-Chiranjeevi/sptestus4.git'
 
             }
 
         }
  
-        stage('Transfer CSV File from Source VM to Multiple Target VMs') {
+        stage('Parallel SCP from Source to Destinations') {
 
-            parallel {
+            steps {
 
-                stage('Transfer to Target VM 1') {
+                script {
 
-                    steps {
+                    def targetHosts = (params.DEST_HOST.trim() == 'ALL') 
 
-                        pwsh """
+                                      ? env.ALL_HOSTS.split(',') 
 
-                            ./migrate.ps1 `
-
-                                -SourceUser '${SOURCE_USER}' `
-
-                                -SourceHost '${SOURCE_HOST}' `
-
-                                -DestinationUser '${DEST_USER_1}' `
-
-                                -DestinationHost '${DEST_HOST_1}' `
-
-                                -CsvFilePath '${FILE_NAME}' `
-
-                                -TargetPath '${DEST_PATH_1}'
-
-                        """
-
-                    }
-
-                }
+                                      : [params.DEST_HOST.trim()]
  
-                stage('Transfer to Target VM 2') {
+                    def parallelSteps = [:]
+ 
+                    for (host in targetHosts) {
 
-                    steps {
+                        def cleanHost = host.trim()
 
-                        pwsh """
+                        parallelSteps["Transfer to ${cleanHost}"] = {
 
-                            ./migrate.ps1 `
+                            sh """
 
-                                -SourceUser '${SOURCE_USER}' `
+                                mkdir -p logs
 
-                                -SourceHost '${SOURCE_HOST}' `
+                                echo "===== Transfer Start to ${cleanHost} =====" >> logs/transfer_${cleanHost}.log
 
-                                -DestinationUser '${DEST_USER_2}' `
+                                pwsh -File ./migrate.ps1 `
 
-                                -DestinationHost '${DEST_HOST_2}' `
+                                      -SourceUser "${params.SOURCE_USER}" `
 
-                                -CsvFilePath '${FILE_NAME}' `
+                                      -SourceHost "${params.SOURCE_HOST}" `
 
-                                -TargetPath '${DEST_PATH_2}'
+                                      -DestinationUser "${params.DEST_USER}" `
 
-                        """
+                                      -DestinationHosts "${cleanHost}" `
+
+                                      -CsvFilePath "${params.FILE_NAME}" `
+
+                                      -TargetPath "${params.DEST_PATH}" >> logs/transfer_${cleanHost}.log 2>&1
+
+                                echo "===== Transfer End to ${cleanHost} =====" >> logs/transfer_${cleanHost}.log
+
+                            """
+
+                        }
 
                     }
+ 
+                    parallel parallelSteps
 
                 }
 
             }
+
+        }
+
+    }
+ 
+    post {
+
+        always {
+
+            archiveArtifacts artifacts: 'logs/*.log', fingerprint: true
+ 
+            emailext(
+
+                subject: "${currentBuild.currentResult}: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
+
+                body: """<p>Job ${currentBuild.currentResult}</p>
+<p>Job: ${env.JOB_NAME}<br/>
+
+Build Number: ${env.BUILD_NUMBER}<br/>
+<a href='${env.BUILD_URL}'>View Build</a></p>""",
+
+                to: 'chiranjeevigen@gmail.com',
+
+                from: 'chiranjeevidudi3005@gmail.com',
+
+                attachmentsPattern: 'logs/*.log'
+
+            )
 
         }
 
     }
 
 }
+
+ 
 
  
  
