@@ -58,7 +58,7 @@ pipeline {
 
                                 echo "===== Transfer Start to ${cleanHost} =====" >> logs/transfer_${cleanHost}.log
 
-                                pwsh -File ./migrate.ps1 `
+                                pwsh -File ./migrate.sh `
 
                                     -SourceUser '${params.SOURCE_USER}' `
 
