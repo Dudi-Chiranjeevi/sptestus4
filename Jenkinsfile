@@ -4,41 +4,97 @@ pipeline {
  
     environment {
 
-        HOSTS = "10.128.0.28 10.128.0.24"
+        GIT_REPO    = 'https://github.com/Dudi-Chiranjeevi/sptestus4.git' 
 
+        BRANCH      = 'main'
+ 
         SOURCE_USER = 'cdudi'
 
-        DEST_USER = 'cdudi'
+        SOURCE_HOST = '10.128.0.29'
+ 
+        DEST_USER_1   = 'cdudi'
 
-        FILE_NAME = '/home/cdudi/sfile.csv'
+        DEST_HOST_1   = '10.128.0.28'
 
-        DEST_PATH = '/home/cdudi/'
+        DEST_PATH_1   = '/home/cdudi/'
+ 
+        DEST_USER_2   = 'cdudi'
+
+        DEST_HOST_2   = '10.128.0.24'   // example second target VM IP
+
+        DEST_PATH_2   = '/home/cdudi/'
+ 
+        FILE_NAME   = '/home/cdudi/sfile.csv'
 
     }
  
     stages {
 
-        stage('Transfer File to All Hosts') {
+        stage('Clone GitHub Repo') {
 
             steps {
 
-                pwsh """
+                git branch: "${BRANCH}", url: "${GIT_REPO}"
 
-                    \$hosts = '${HOSTS}'.Split(' ')
+            }
 
-                    ./migrate-multiple.ps1 `
+        }
+ 
+        stage('Transfer CSV File from Source VM to Multiple Target VMs') {
 
-                        -TargetHosts \$hosts `
+            parallel {
 
-                        -SourceUser '${SOURCE_USER}' `
+                stage('Transfer to Target VM 1') {
 
-                        -CsvFilePath '${FILE_NAME}' `
+                    steps {
 
-                        -TargetUser '${DEST_USER}' `
+                        pwsh """
 
-                        -TargetPath '${DEST_PATH}'
+                            ./migrate.ps1 `
 
-                """
+                                -SourceUser '${SOURCE_USER}' `
+
+                                -SourceHost '${SOURCE_HOST}' `
+
+                                -DestinationUser '${DEST_USER_1}' `
+
+                                -DestinationHost '${DEST_HOST_1}' `
+
+                                -CsvFilePath '${FILE_NAME}' `
+
+                                -TargetPath '${DEST_PATH_1}'
+
+                        """
+
+                    }
+
+                }
+ 
+                stage('Transfer to Target VM 2') {
+
+                    steps {
+
+                        pwsh """
+
+                            ./migrate.ps1 `
+
+                                -SourceUser '${SOURCE_USER}' `
+
+                                -SourceHost '${SOURCE_HOST}' `
+
+                                -DestinationUser '${DEST_USER_2}' `
+
+                                -DestinationHost '${DEST_HOST_2}' `
+
+                                -CsvFilePath '${FILE_NAME}' `
+
+                                -TargetPath '${DEST_PATH_2}'
+
+                        """
+
+                    }
+
+                }
 
             }
 
@@ -49,107 +105,6 @@ pipeline {
 }
 
  
-
-
-
-// pipeline {
-
-//     agent any
- 
-//     environment {
-
-//         GIT_REPO    = 'https://github.com/Dudi-Chiranjeevi/sptestus4.git' 
-
-//         BRANCH      = 'main'
- 
-//         SOURCE_USER = 'cdudi'
-
-//         SOURCE_HOST = '10.128.0.29'
- 
-//         DEST_USER   = 'cdudi'  // Same user for all destination VMs
-
-//         DEST_PATH   = '/home/cdudi/'
-
-//         FILE_NAME   = '/home/cdudi/sfile.csv'
-
-//     }
- 
-//     stages {
-
-//         stage('Clone GitHub Repo') {
-
-//             steps {
-
-//                 git branch: "${BRANCH}", url: "${GIT_REPO}"
-
-//             }
-
-//         }
- 
-//         stage('Transfer CSV File to Multiple Destination VMs') {
-
-//             parallel {
-
-//                 stage('Transfer to 10.128.0.28') {
-
-//                     steps {
-
-//                         pwsh """
-
-//                             ./migrate.ps1 `
-
-//                                         -SourceUser '${SOURCE_USER}' `
-
-//                                         -SourceHost '${SOURCE_HOST}' `
-
-//                                         -DestinationUser '${DEST_USER}' `
-
-//                                         -DestinationHost '10.128.0.28' `
-
-//                                         -CsvFilePath '${FILE_NAME}' `
-
-//                                         -TargetPath '${DEST_PATH}'
-
-//                         """
-
-//                     }
-
-//                 }
- 
-//                 stage('Transfer to 10.128.0.24') {
-
-//                     steps {
-
-//                         pwsh """
-
-//                             ./migrate.ps1 `
-
-//                                         -SourceUser '${SOURCE_USER}' `
-
-//                                         -SourceHost '${SOURCE_HOST}' `
-
-//                                         -DestinationUser '${DEST_USER}' `
-
-//                                         -DestinationHost '10.128.0.24' `
-
-//                                         -CsvFilePath '${FILE_NAME}' `
-
-//                                         -TargetPath '${DEST_PATH}'
-
-//                         """
-
-//                     }
-
-//                 }
-
-//             }
-
-//         }
-
-//     }
-
-// }
-
  
  
 
